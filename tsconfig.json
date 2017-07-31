@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "outFile": "build.js"
+  },
+  "include": ["src/**/*"],
+}
