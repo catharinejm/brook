@@ -1,6 +1,9 @@
 {
   "compilerOptions": {
-    "outFile": "build.js"
+    "outDir": "build",
+    "strictNullChecks": true,
+    "target": "ES6",
+    "module": "CommonJS"
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*"]
 }
