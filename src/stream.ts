@@ -24,7 +24,10 @@ class MagicSubscription<T> implements Subscription {
     for (let i = 0; i < n && this.pub.hasNext(); i++) {
       p = this.pub.nextElem()
         .catch(err => this.sub.onError(err))
-        .then(e => this.sub.onNext(e))
+        .then(e => {
+          console.log(`sending element ${e}`)
+          return this.sub.onNext(e)
+        })
     }
     if (this.pub.isExhausted) {
       this.cancel()
@@ -79,32 +82,40 @@ class ArrayPublisher<T> extends BasePublisher<T> {
   }
 }
 
-export abstract class BufferedSubscriber<T> implements Subscriber<T> {
-  private _count: number = 0
-  private _sub: Subscription | null = null
-  private _processing: Promise<void> = Promise.resolve(undefined)
+class IteratorPublisher<T> extends BasePublisher<T> {
+  _cur: IteratorResult<T>
+  constructor(private _iter: Iterator<T>) {
+    super()
+    this._cur = _iter.next()
+  }
 
-  constructor(private _cap: number) { }
+  get isExhausted(): boolean { return !this.hasNext() }
 
-  get cap() { return this._cap }
+  hasNext(): boolean {
+    return !this._cur.done
+  }
+
+  nextElem(): Promise<T> {
+    if (this.hasNext()) {
+      let cur = this._cur.value
+      this._cur = this._iter.next()
+      return Promise.resolve(cur)
+    }
+    throw "No more elements"
+  }
+}
+
+abstract class BaseSubscriber<T> implements Subscriber<T> {
+  protected _sub: Subscription | null
 
   onSubscribe(sub: Subscription) {
     this._sub = sub
-    this._sub.request(this.cap)
+    this._requestElems()
   }
 
-  onNext(t: T) {
-    this._count++
-    this._processing = this._processing.then(_ => {
-      this.process(t)
-      if (--this._count == 0) {
-        if (this._sub != null)
-          this._sub.request(this.cap)
-        else
-          this.afterComplete()
-      }
-    })
-  }
+  protected abstract _requestElems()
+
+  abstract onNext(t: T)
 
   onError(err: any) {
     console.error(`ERROR: ${err}`)
@@ -114,13 +125,60 @@ export abstract class BufferedSubscriber<T> implements Subscriber<T> {
     this._sub = null
   }
 
-  abstract process(t: T)
+  abstract process(t: T): Promise<void>
 
   afterComplete() { }
+}
+
+export abstract class BufferedSubscriber<T> extends BaseSubscriber<T> {
+  private _count: number = 0
+  private _processing: Promise<void> = Promise.resolve(undefined)
+
+  constructor(private _cap: number) { super() }
+
+  get cap() { return this._cap }
+
+  onNext(t: T) {
+    this._count++
+    this._processing = this._processing
+      .then(_ => this.process(t))
+      .then(_ => {
+        if (--this._count == 0) {
+          if (this._sub != null) {
+            this._requestElems()
+          } else {
+            this.afterComplete()
+          }
+        }
+      })
+  }
+
+  protected _requestElems() {
+    this._sub!.request(this.cap)
+  }
+}
+
+export abstract class UnbufferedSubscriber<T> extends BaseSubscriber<T> {
+  onNext(t: T) {
+    this.process(t).then(_ => {
+      if (this._sub != null)
+        this._requestElems()
+      else
+        this.afterComplete()
+    })
+  }
+
+  protected _requestElems() {
+    this._sub!.request(1)
+  }
 }
 
 export namespace Publishers {
   export function fromArray<T>(ary: Array<T>): Publisher<T> {
     return new ArrayPublisher(ary)
+  }
+
+  export function fromIterator<T>(iter: Iterator<T>): Publisher<T> {
+    return new IteratorPublisher(iter)
   }
 }
