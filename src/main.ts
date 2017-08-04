@@ -1,46 +1,47 @@
-import { Publishers, BufferedSubscriber, UnbufferedSubscriber } from './stream'
-
-function range(min: number, max?: number): Array<number> {
-  if (max == null) {
-    max = min
-    min = 0
-  }
-  return Array.from(new Array(max - min).keys(), (n) => n + min)
-}
+import { BufferedSubscriber, UnbufferedSubscriber } from './subscribers'
+import * as Publishers from './publishers'
+import { range } from './util'
 
 // let pub = Publishers.fromArray(range(10))
-let pub = (() => {
-  let n = 0
-  return Publishers.fromIterator({
-    next: () => {
-      return {
-        value: n++,
-        done: false
-      }
-    }
-  })
-})()
+// let pub = Publishers.fromIterator((function* () {
+//   let x = 0
+//   for (; ;) {
+//     if (x < 20) {
+//       yield x++
+//     } else {
+//       throw "oh sniz"
+//     }
+//   }
+// })())
 
-class EchoSubscriber extends BufferedSubscriber<number> {
-  constructor() { super(5) }
-  // class EchoSubscriber extends UnbufferedSubscriber<number> {
-  //   constructor() { super() }
+class EchoSubscriber<T> extends BufferedSubscriber<T> {
+  constructor(private _name: string) { super(5) }
 
-  process(n: number): Promise<void> {
-    // console.log(`[${+new Date}] received: ${n}`)
-    // return Promise.resolve(undefined)
+  get name(): string { return this._name }
+
+  process(n: T): Promise<void> {
     return new Promise(resolve => {
-      setTimeout(() => resolve(console.log(`[${+new Date}] received: ${n}`)), Math.random() * 500 + 100)
+      setTimeout(() => resolve(console.log(`[${+new Date}] (${this.name}) received: ${n}`)), Math.random() * 500 + 100)
     })
   }
 
   afterComplete() {
     console.log("done!")
   }
+
+  onError(err: any) {
+    console.error(`ERROR (${this.name}): ${err}`)
+  }
 }
 
-let sub = new EchoSubscriber
+let pub = Publishers.fromUDPSocket(12345)
+
+let sub = new EchoSubscriber<string>("Bob")
+let sub2 = new EchoSubscriber<string>("Fred")
+let sub3 = new EchoSubscriber<string>("Sally")
 
 // pub.subscribe(buf)
 // buf.subscribe(sub)
 pub.subscribe(sub)
+pub.subscribe(sub2)
+pub.subscribe(sub3)
