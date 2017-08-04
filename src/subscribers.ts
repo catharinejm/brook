@@ -9,6 +9,8 @@ export abstract class BaseSubscriber<T> implements Subscriber<T> {
     this._requestElems()
   }
 
+  get isSubscribed(): boolean { return this._sub != null }
+
   protected abstract _requestElems()
 
   abstract onNext(t: T)
@@ -17,7 +19,6 @@ export abstract class BaseSubscriber<T> implements Subscriber<T> {
 
   onComplete() {
     this._sub = null
-    this.afterComplete()
   }
 
   abstract process(t: T): Promise<void>
@@ -41,10 +42,15 @@ export abstract class BufferedSubscriber<T> extends BaseSubscriber<T> {
     this._processing = this._processing
       .then(_ => this.process(t))
       .then(_ => {
-        if (this._remaining == 0 && this._sub != null) {
+        if (this._remaining == 0 && this.isSubscribed) {
           this._requestElems()
         }
       })
+  }
+
+  onComplete() {
+    super.onComplete()
+    this._processing.then(_ => this.afterComplete())
   }
 
   protected _requestElems() {
@@ -56,12 +62,17 @@ export abstract class BufferedSubscriber<T> extends BaseSubscriber<T> {
 export abstract class UnbufferedSubscriber<T> extends BaseSubscriber<T> {
   onNext(t: T) {
     this.process(t).then(_ => {
-      if (this._sub != null)
+      if (this.isSubscribed)
         this._requestElems()
     })
   }
 
   protected _requestElems() {
     this._sub!.request(1)
+  }
+
+  onComplete() {
+    super.onComplete()
+    this.afterComplete()
   }
 }

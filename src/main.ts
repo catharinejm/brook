@@ -3,16 +3,16 @@ import * as Publishers from './publishers'
 import { range } from './util'
 
 // let pub = Publishers.fromArray(range(10))
-// let pub = Publishers.fromIterator((function* () {
-//   let x = 0
-//   for (; ;) {
-//     if (x < 20) {
-//       yield x++
-//     } else {
-//       throw "oh sniz"
-//     }
-//   }
-// })())
+let pub = Publishers.fromIterator((function* () {
+  let x = 0
+  for (; ;) {
+    if (x < 20) {
+      yield x++
+    } else {
+      throw "oh sniz"
+    }
+  }
+})())
 
 class EchoSubscriber<T> extends BufferedSubscriber<T> {
   constructor(private _name: string) { super(5) }
@@ -26,7 +26,7 @@ class EchoSubscriber<T> extends BufferedSubscriber<T> {
   }
 
   afterComplete() {
-    console.log("done!")
+    console.log(`(${this.name}) done!`)
   }
 
   onError(err: any) {
@@ -34,11 +34,10 @@ class EchoSubscriber<T> extends BufferedSubscriber<T> {
   }
 }
 
-let pub = Publishers.fromUDPSocket(12345)
-
-let sub = new EchoSubscriber<string>("Bob")
-let sub2 = new EchoSubscriber<string>("Fred")
-let sub3 = new EchoSubscriber<string>("Sally")
+// let pub = Publishers.fromUDPSocket(12345)
+let sub = new EchoSubscriber<number>("Bob")
+let sub2 = new EchoSubscriber<number>("Fred")
+let sub3 = new EchoSubscriber<number>("Sally")
 
 // pub.subscribe(buf)
 // buf.subscribe(sub)
