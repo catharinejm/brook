@@ -53,7 +53,7 @@ class UDPPublisher extends BasePublisher<string> {
         this._resolveNext(msg.toString())
       }
     })
-    this._sock.on('close', () => { this._isClosed = true })
+    this._sock.on('close', () => { this.shutdown() })
     this._sock.bind(_port)
   }
 
@@ -65,6 +65,7 @@ class UDPPublisher extends BasePublisher<string> {
       } else {
         return new Promise((resolve, reject) => {
           this._deferredNexts.push({ resolve, reject })
+          console.log(`deferring; new size: ${this._deferredNexts.length}`)
         })
       }
     } else {
@@ -78,6 +79,15 @@ class UDPPublisher extends BasePublisher<string> {
       p.resolve(msg.trim())
     } else {
       this._msgBuf.push(msg.trim())
+    }
+  }
+
+  shutdown() {
+    this._isClosed = true
+    let p
+    console.log(`deferred size: ${this._deferredNexts.length}`)
+    while ((p = this._deferredNexts.shift()) != null) {
+      p.resolve(undefined)
     }
   }
 }

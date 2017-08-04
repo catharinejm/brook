@@ -26,25 +26,29 @@ export abstract class BaseSubscriber<T> implements Subscriber<T> {
 }
 
 export abstract class BufferedSubscriber<T> extends BaseSubscriber<T> {
-  private _count: number = 0
+  private _remaining: number
   private _processing: Promise<void> = Promise.resolve(undefined)
 
-  constructor(private _cap: number) { super() }
+  constructor(private _cap: number) {
+    super()
+    this._remaining = _cap
+  }
 
   get cap() { return this._cap }
 
   onNext(t: T) {
-    this._count++
+    this._remaining--
     this._processing = this._processing
       .then(_ => this.process(t))
       .then(_ => {
-        if (--this._count == 0 && this._sub != null) {
+        if (this._remaining == 0 && this._sub != null) {
           this._requestElems()
         }
       })
   }
 
   protected _requestElems() {
+    this._remaining = this.cap
     this._sub!.request(this.cap)
   }
 }
