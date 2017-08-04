@@ -9,7 +9,7 @@ let pub = Publishers.fromIterator((function* () {
     if (x < 20) {
       yield x++
     } else {
-      throw "oh sniz"
+      throw "oh snap"
     }
   }
 })())
