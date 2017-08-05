@@ -13,3 +13,9 @@ class val ID
 
   fun val u64(): U64 =>
     _id
+
+class iso NoOp
+  fun apply() => None
+
+class iso Ignore1
+  fun apply(a: Any) => None
