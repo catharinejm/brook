@@ -12,7 +12,7 @@ function should_rebuild {
     if [[ -e "$EXE_PATH" ]]; then
         local build_ts=$(file_ts "$EXE_PATH")
         local max_ts=0
-        for f in "$SRC_DIR/**/*"; do
+        for f in "$SRC_DIR"/**/*; do
             if [[ -f "$f" ]]; then
                 fts=$(file_ts "$f")
                 if [[ $fts -gt $max_ts ]]; then
