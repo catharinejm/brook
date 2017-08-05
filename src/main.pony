@@ -1,52 +1,41 @@
 use "collections"
 use "promises"
-
-class EndRange[A: (Real[A] val & Number) = USize] is Iterator[A]
-  """
-  Produces [min, max).
-  """
-  let _min: A
-  let _max: A
-  let _inc: A
-  var _idx: A
-
-  new create(min: A, max: A, inc: A = 1) =>
-    _min = min
-    _max = max
-    _inc = inc
-    _idx = min
-
-  fun has_next(): Bool =>
-    _idx < _max
-
-  fun ref next(): A ? =>
-    if has_next() then
-      _idx = _idx + _inc
-    else
-      error
-    end
-
-  fun ref rewind() =>
-    _idx = _min
+use "time"
+use "random"
 
 actor Main
   new create(env: Env) =>
-    let pub = IteratorPublisher[I32](recover EndRange[I32](1, 50) end)
+    let timers = Timers
+    let pub = IteratorPublisher[I32](recover Range[I32](1, 50) end, env)
     let sub = BufferedSubscriber[I32](
       5,
       {(n: I32): Promise[None] =>
-        env.out.print("received " + n.string())
         let p = Promise[None]
-        p(None)
+        (let s, let ns) = Time.now()
+        let timeout = Rand(s.u64(), ns.u64()).u64() % 300 + 50
+        let timer = Timer(
+          let _env: Env = env
+          object iso is TimerNotify
+            fun ref apply(timer: Timer, count: U64): Bool =>
+              (let s, ns) = Time.now()
+              let t = (s * 1000) + (ns / 1000000)
+              _env.out.print("["+t.string()+"] received " + n.string())
+              p(None)
+              false
+          end, 
+          timeout * 1_000_000
+        )
+        timers(consume timer)
         p
-      } val
+      } val,
+      recover env.out~print("done!") end
     )
     pub.subscribe(sub)
 
-interface tag Publisher[T: Any #share]
+interface tag Publisher[T: Stringable val]
   be subscribe(sub: Subscriber[T])
 
-interface tag Subscriber[T: Any #share]
+interface tag Subscriber[T: Stringable val]
   be on_subscribe(s: Subscription)
   be on_next(t: T)
   be on_error(err: Any)
@@ -56,5 +45,5 @@ interface tag Subscription
   be request(n: ISize)
   be cancel()
 
-type Processor[T: Any #share, R: Any #share] is (Subscriber[T] & Publisher[R])
+type Processor[T: Stringable val, R: Stringable val] is (Subscriber[T] & Publisher[R])
 

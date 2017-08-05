@@ -1,11 +1,11 @@
 use "promises"
 
-trait tag BaseSubscriber[T: Any #share] is Subscriber[T]
+trait tag BaseSubscriber[T: Stringable val] is Subscriber[T]
   be process(t: T, result: Promise[None])
 
   be _request_elems()
 
-actor BufferedSubscriber[T: Any #share] is BaseSubscriber[T]
+actor BufferedSubscriber[T: Stringable val] is BaseSubscriber[T]
   var _sub: (Subscription | None) = None
   var _remaining: ISize
   var _cap: ISize
