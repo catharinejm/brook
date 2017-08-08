@@ -15,7 +15,7 @@ actor MagicSubscription[T: Stringable val] is Subscription
   be request(n: ISize) =>
     let sender = _Sender[T](n, _sub, _pub, _env)
     let res = Promise[None]
-    sender.send_next(res)
+    sender(res)
     res.next[None](
       Ignore1,
       recover this~cancel() end
@@ -36,21 +36,21 @@ actor _Sender[T: Stringable val]
     _pub = pub'
     _env = env'
 
-  be send_next(done: Promise[None]) =>
+  be apply(done: Promise[None]) =>
     if _rem > 0 then
       _rem = _rem - 1
       let p = Promise[(T | None)]
       _pub.next_elem(p)
       p.next[None](
         {(mt: (T | None))(self = recover this end) =>
-          try
-            let t = mt as T
-            _env.out.print("sending " + t.string())
-            _sub.on_next(t)
-            self.send_next(done)
-          else
-            done.reject()
-            _sub.on_complete()
+          match mt
+            | let t: T =>
+                _env.out.print("sending " + t.string())
+                _sub.on_next(t)
+                self(done)
+            | None =>
+                done.reject()
+                _sub.on_complete()
           end
         } iso,
         NoOp

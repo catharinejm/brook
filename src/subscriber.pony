@@ -35,11 +35,8 @@ actor BufferedSubscriber[T: Stringable val] is BaseSubscriber[T]
     )
     _processing = p.next[None](
       { (none: None)(self = recover this end) =>
-        try
-          _sub as Subscription // bail if None
-          if _remaining == 0 then
-            self._request_elems()
-          end
+        if _remaining == 0 then
+          self._request_elems()
         end
       } iso,
       NoOp

@@ -18,4 +18,8 @@ class iso NoOp
   fun apply() => None
 
 class iso Ignore1
-  fun apply(a: Any) => None
+  let _f: {()} val
+  new iso create(f: {()} val = {() => None} val) =>
+    _f = f
+  fun apply(a: Any) =>
+    _f()

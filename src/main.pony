@@ -6,7 +6,7 @@ use "random"
 actor Main
   new create(env: Env) =>
     let timers = Timers
-    let pub = IteratorPublisher[I32](recover Range[I32](1, 50) end, env)
+    let pub = IteratorPublisher[I32](recover Range[I32](0, 20) end, env)
     let sub = BufferedSubscriber[I32](
       5,
       {(n: I32): Promise[None] =>
