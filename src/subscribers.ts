@@ -38,11 +38,10 @@ export abstract class BufferedSubscriber<T> extends BaseSubscriber<T> {
   get cap() { return this._cap }
 
   onNext(t: T) {
-    this._remaining--
     this._processing = this._processing
       .then(_ => this.process(t))
       .then(_ => {
-        if (this._remaining == 0 && this.isSubscribed) {
+        if (--this._remaining == 0 && this.isSubscribed) {
           this._requestElems()
         }
       })

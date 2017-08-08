@@ -9,7 +9,8 @@ let pub = Publishers.fromIterator((function* () {
     if (x < 20) {
       yield x++
     } else {
-      throw "oh snap"
+      // throw "oh snap"
+      break
     }
   }
 })())
@@ -21,7 +22,7 @@ class EchoSubscriber<T> extends BufferedSubscriber<T> {
 
   process(n: T): Promise<void> {
     return new Promise(resolve => {
-      setTimeout(() => resolve(console.log(`[${+new Date}] (${this.name}) received: ${n}`)), Math.random() * 500 + 100)
+      setTimeout(() => resolve(console.log(`[${+new Date}] (${this.name}) received: ${n}`)), Math.random() * 300 + 50)
     })
   }
 
@@ -36,11 +37,11 @@ class EchoSubscriber<T> extends BufferedSubscriber<T> {
 
 // let pub = Publishers.fromUDPSocket(12345)
 let sub = new EchoSubscriber<number>("Bob")
-let sub2 = new EchoSubscriber<number>("Fred")
-let sub3 = new EchoSubscriber<number>("Sally")
+// let sub2 = new EchoSubscriber<number>("Fred")
+// let sub3 = new EchoSubscriber<number>("Sally")
 
 // pub.subscribe(buf)
 // buf.subscribe(sub)
 pub.subscribe(sub)
-pub.subscribe(sub2)
-pub.subscribe(sub3)
+// pub.subscribe(sub2)
+// pub.subscribe(sub3)
